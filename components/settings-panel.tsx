@@ -1,0 +1,169 @@
+"use client"
+
+import { X, Plus, Minus } from "lucide-react"
+
+interface SettingsPanelProps {
+  isOpen: boolean
+  onClose: () => void
+  unit: "C" | "F"
+  onUnitChange: (unit: "C" | "F") => void
+  location: string
+  onLocationChange: (location: string) => void
+  locations: string[]
+  onRemoveLocation: (location: string) => void
+  inline?: boolean
+}
+
+export function SettingsPanel({
+  isOpen,
+  onClose,
+  unit,
+  onUnitChange,
+  location,
+  onLocationChange,
+  locations,
+  onRemoveLocation,
+  inline = false,
+}: SettingsPanelProps) {
+
+  const locationButtons = (
+    <>
+      {locations.map((loc) => (
+        <div key={loc} className="flex items-stretch mt-2 first:mt-0">
+          <button
+            onClick={() => onLocationChange(loc)}
+            className={`flex-1 text-left px-4 py-2 font-mono text-sm border border-r-0 transition-colors duration-300 ${
+              location === loc
+                ? "bg-weather-primary text-weather-bg border-weather-primary"
+                : "bg-transparent text-weather-primary border-weather-border hover:border-weather-accent"
+            }`}
+          >
+            {loc}
+          </button>
+          {location !== loc && locations.length > 1 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation()
+                onRemoveLocation(loc)
+              }}
+              className="px-3 border border-weather-border bg-transparent text-weather-accent hover:text-red-400 hover:border-red-400 transition-colors duration-300"
+              aria-label={`Remove ${loc}`}
+            >
+              <Minus size={14} strokeWidth={1.5} />
+            </button>
+          )}
+          {(location === loc || locations.length <= 1) && (
+            <div
+              className={`px-3 flex items-center border transition-colors duration-300 ${
+                location === loc
+                  ? "border-weather-primary bg-weather-primary"
+                  : "border-weather-border bg-transparent"
+              }`}
+            />
+          )}
+        </div>
+      ))}
+      <div className="py-4">
+        <hr className="border-weather-border" />
+      </div>
+      <button
+        onClick={() => {
+          // TODO: Implement add location functionality
+        }}
+        className="w-full flex items-center justify-between px-4 py-2 font-mono text-sm border border-weather-border bg-transparent text-weather-accent hover:border-weather-accent hover:text-weather-primary transition-colors duration-300"
+      >
+        <span>Add Location</span>
+        <Plus size={16} strokeWidth={1.5} />
+      </button>
+    </>
+  )
+
+  const unitButtons = (
+    <div className="flex gap-2">
+      <button
+        onClick={() => onUnitChange("F")}
+        className={`px-4 py-2 font-mono text-sm border transition-colors duration-300 ${
+          unit === "F"
+            ? "bg-weather-primary text-weather-bg border-weather-primary"
+            : "bg-transparent text-weather-primary border-weather-border hover:border-weather-accent"
+        }`}
+      >
+        °F
+      </button>
+      <button
+        onClick={() => onUnitChange("C")}
+        className={`px-4 py-2 font-mono text-sm border transition-colors duration-300 ${
+          unit === "C"
+            ? "bg-weather-primary text-weather-bg border-weather-primary"
+            : "bg-transparent text-weather-primary border-weather-border hover:border-weather-accent"
+        }`}
+      >
+        °C
+      </button>
+    </div>
+  )
+
+  if (inline) {
+    return (
+      <div className="bg-weather-bg border-l border-weather-border p-6 h-full">
+        <h2 className="hidden text-weather-primary text-lg font-mono mb-8">Settings</h2>
+
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <label className="text-weather-secondary text-sm font-mono block">Temperature</label>
+            {unitButtons}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-weather-secondary text-sm font-mono block">Location</label>
+            <div className="flex flex-col">
+              {locationButtons}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <>
+      <div
+        className={`fixed inset-0 bg-black/50 transition-opacity duration-300 z-40 ${
+          isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        onClick={onClose}
+      />
+
+      <div
+        className={`fixed top-0 right-0 h-full w-full max-w-xs bg-weather-bg border-l border-weather-border p-6 transition-transform duration-300 ease-out z-50 ${
+          isOpen ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-weather-primary text-lg font-mono">Settings</h2>
+          <button
+            onClick={onClose}
+            className="p-2 -m-2 text-weather-accent hover:text-weather-primary transition-colors duration-300"
+            aria-label="Close settings"
+          >
+            <X size={20} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        <div className="space-y-8">
+          <div className="space-y-3">
+            <label className="text-weather-secondary text-sm font-mono block">Temperature</label>
+            {unitButtons}
+          </div>
+
+          <div className="space-y-3">
+            <label className="text-weather-secondary text-sm font-mono block">Location</label>
+            <div className="flex flex-col">
+              {locationButtons}
+            </div>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}
