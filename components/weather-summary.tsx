@@ -1,5 +1,6 @@
 import { getComparisonText, getSecondaryText, getConditionText } from "@/lib/weather-utils"
 import { LastUpdated } from "@/components/last-updated"
+import { WeatherIcon3D } from "@/components/weather-icon-3d"
 import type { WeatherData } from "@/lib/mock-weather-data"
 
 interface WeatherSummaryProps {
@@ -17,11 +18,21 @@ export function WeatherSummary({ data, unit }: WeatherSummaryProps) {
   return (
     <section className="space-y-6 md:space-y-8">
       <div className="space-y-2 md:space-y-3">
-        <p className="text-[72px] md:text-[96px] lg:text-[120px] leading-none text-weather-primary font-mono tracking-tight">
-          {displayTemp}°
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-[72px] md:text-[96px] lg:text-[120px] leading-none text-weather-primary font-mono tracking-tight">
+            {displayTemp}°
+          </p>
+          <div className="hidden md:block">
+             <WeatherIcon3D condition={data.currentCondition} size={160} />
+          </div>
+        </div>
         <p className="text-weather-accent text-base md:text-lg lg:text-xl font-mono">Feels like {displayFeelsLike}°</p>
-        <p className="text-weather-secondary text-sm md:text-base">{conditionText}</p>
+        <div className="flex items-center gap-4">
+           <p className="text-weather-secondary text-sm md:text-base">{conditionText}</p>
+           <div className="md:hidden">
+              <WeatherIcon3D condition={data.currentCondition} size={80} />
+           </div>
+        </div>
         <LastUpdated timestamp={data.lastUpdated} />
       </div>
       <div className="space-y-2 md:space-y-3">

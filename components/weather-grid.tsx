@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { WeatherIcon } from "./weather-icon"
+import { WeatherIcon3D } from "@/components/weather-icon-3d"
 import { getComparisonIndicator, getConditionText } from "@/lib/weather-utils"
 import type { WeatherPeriod } from "@/lib/mock-weather-data"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
@@ -48,12 +48,12 @@ export function WeatherGrid({ periods, unit }: WeatherGridProps) {
             <div key={period.time} className="relative">
               <button
                 onClick={() => handleMobileTap(period.time)}
-                className="w-full grid grid-cols-[1fr_auto_auto_auto] gap-x-6 py-3 cursor-pointer active:bg-weather-border/20 transition-colors"
+                className="w-full grid grid-cols-[1fr_auto_auto_auto] gap-x-6 py-3 cursor-pointer active:bg-weather-border/20 transition-colors items-center"
               >
                 <div className="text-weather-primary text-left">{period.time}</div>
                 <div className="text-weather-primary text-right tabular-nums">{convertTemp(period.temp)}°</div>
-                <div className="flex justify-center items-center w-6">
-                  <WeatherIcon condition={period.condition} size={16} />
+                <div className="flex justify-center items-center w-8">
+                  <WeatherIcon3D condition={period.condition} size={32} />
                 </div>
                 <div className="flex justify-center items-center text-weather-secondary text-center w-6">
                   {indicator}
@@ -91,14 +91,13 @@ export function WeatherGrid({ periods, unit }: WeatherGridProps) {
             return (
               <Tooltip key={period.time}>
                 <TooltipTrigger asChild>
-                  <div className="flex flex-col items-center space-y-3 lg:space-y-4 py-6 lg:py-8 border border-weather-border cursor-pointer">
-                    <p className="text-weather-accent text-sm lg:text-base uppercase tracking-wider">{period.time}</p>
-                    <p className="text-weather-primary text-3xl lg:text-4xl font-mono tabular-nums">
+                  <div className="flex flex-col items-center space-y-3 lg:space-y-4 py-6 lg:py-8 border border-weather-border cursor-pointer overflow-hidden relative">
+                    <p className="text-weather-accent text-sm lg:text-base uppercase tracking-wider relative z-10">{period.time}</p>
+                    <p className="text-weather-primary text-3xl lg:text-4xl font-mono tabular-nums relative z-10">
                       {convertTemp(period.temp)}°
                     </p>
-                    <div className="flex items-center gap-3">
-                      <WeatherIcon condition={period.condition} size={20} />
-                      <span className="text-weather-secondary text-lg">{indicator}</span>
+                    <div className="flex items-center gap-3 relative z-10">
+                      <WeatherIcon3D condition={period.condition} size={60} />
                     </div>
                   </div>
                 </TooltipTrigger>

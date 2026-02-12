@@ -1,14 +1,5 @@
 # Marketing Content - Minimal Weather Template
 
-## Table of Contents
-
-- [v0 Template Description](#v0-template-description)
-- [GitHub README](#github-readme)
-- [X (Twitter) Posts](#x-twitter-posts)
-- [LinkedIn Posts](#linkedin-posts)
-- [Vercel Community Forum Blog Post](#vercel-community-forum-blog-post)
-- [Product Hunt Description](#product-hunt-description)
-- [Short-Form Descriptions](#short-form-descriptions)
 
 ---
 

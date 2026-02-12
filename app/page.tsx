@@ -9,9 +9,13 @@ import { SettingsPanel } from "@/components/settings-panel"
 import { WeatherParticles } from "@/components/weather-particles"
 import { fetchWeatherData } from "@/lib/weather-api"
 import type { WeatherData } from "@/lib/mock-weather-data"
+import { Meteors } from "@/components/ui/meteors"
+import { Particles } from "@/components/ui/particles"
 
 export default function WeatherPage() {
   const [isLoaded, setIsLoaded] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const refreshWeather = () => setRefreshTrigger((prev) => prev + 1)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [unit, setUnit] = useState<"C" | "F">("C")
   const [location, setLocation] = useState("Stockholm, Sweden")
@@ -26,22 +30,39 @@ export default function WeatherPage() {
   ])
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null)
   const [isLoadingWeather, setIsLoadingWeather] = useState(true)
+  const [isNight, setIsNight] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (weatherData) {
+      const currentHour = parseInt(
+        new Date().toLocaleTimeString("en-US", {
+          hour: "numeric",
+          hour12: false,
+          timeZone: weatherData.timezone,
+        })
+      )
+      setIsNight(currentHour >= 18 || currentHour < 4)
+    }
+  }, [weatherData])
 
   useEffect(() => {
     async function loadWeather() {
       setIsLoadingWeather(true)
+      setError(null)
       try {
         const data = await fetchWeatherData(location)
         setWeatherData(data)
-      } catch (error) {
-        console.error("[v0] Failed to load weather:", error)
+      } catch (err: any) {
+        console.error("Failed to load weather:", err)
+        setError(err.message || "Failed to load weather data.")
       } finally {
         setIsLoadingWeather(false)
       }
     }
 
     loadWeather()
-  }, [location])
+  }, [location, refreshTrigger])
 
   useEffect(() => {
     const savedUnit = localStorage.getItem("weather-unit") as "C" | "F" | null
@@ -75,6 +96,20 @@ export default function WeatherPage() {
     const updated = locations.filter((l) => l !== loc)
     setLocations(updated)
     localStorage.setItem("weather-locations", JSON.stringify(updated))
+  }
+
+  if (error) {
+    return (
+      <main className="min-h-screen bg-weather-bg text-weather-primary font-mono flex items-center justify-center flex-col gap-4 p-4">
+        <div className="text-red-400 text-center max-w-md">{error}</div>
+        <button 
+          onClick={refreshWeather}
+          className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-md transition-colors text-sm"
+        >
+          Retry
+        </button>
+      </main>
+    )
   }
 
   if (!weatherData || isLoadingWeather) {
@@ -142,6 +177,86 @@ export default function WeatherPage() {
           inline={false}
         />
       </div>
+
+      {/* Background Weather Effects */}
+      {(() => {
+        const condition = weatherData?.currentCondition
+
+        // Night time effects
+        if (isNight) {
+          return (
+             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+                <Meteors number={20} />
+                <Particles
+                  className="absolute inset-0"
+                  quantity={50}
+                  ease={80}
+                  color="#ffffff"
+                  refresh
+                />
+             </div>
+          )
+        }
+
+        // Day time effects
+        if (!isNight) {
+          return (
+            <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+              {/* Day Sky Base Tint - ALWAYS Visible in Day Mode */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-black to-black opacity-100" />
+
+              {/* Debug Info (Remove later) */}
+              <div className="absolute top-2 left-2 text-[10px] text-white/30 font-mono z-50">
+                 Mode: Day | Cond: {condition}
+              </div>
+
+              {/* Sun Rays (Clear / Partly Cloudy) - SIMPLIFIED GRADIENT */}
+              {(condition === "clear" || condition === "partly-cloudy") && (
+                 <div className="absolute -top-[20%] -right-[20%] w-[100%] h-[100%] bg-blue-500/10 blur-[100px] rounded-full animate-pulse" />
+              )}
+               {(condition === "clear" || condition === "partly-cloudy") && (
+                 <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[80%] bg-gradient-to-br from-orange-400/30 via-yellow-500/10 to-transparent blur-3xl opacity-100 animate-spin-slow" style={{ animationDuration: '40s' }} />
+              )}
+              
+              {/* Rain (Rainy) */}
+              {condition === "rain" && (
+                <div className="absolute inset-0 bg-gradient-to-b from-blue-900/30 to-transparent">
+                   {[...Array(50)].map((_, i) => (
+                      <div 
+                        key={i}
+                        className="absolute w-[2px] h-16 bg-blue-400/50 rounded-full animate-rain"
+                        style={{
+                           left: `${Math.random() * 100}%`,
+                           top: `-${Math.random() * 20}%`,
+                           animationDelay: `${Math.random() * 2}s`,
+                           animationDuration: `${0.5 + Math.random() * 0.5}s`
+                        }}
+                      />
+                   ))}
+                </div>
+              )}
+
+              {/* Clouds (Cloudy / Rain / Snow / Partly Cloudy) */}
+              {(condition === "cloudy" || condition === "rain" || condition === "snow" || condition === "partly-cloudy") && (
+                 <div className="absolute inset-0">
+                    <div className="absolute top-10 left-10 w-60 h-60 bg-white/10 rounded-full blur-[80px]" />
+                    <div className="absolute bottom-20 right-20 w-80 h-80 bg-gray-400/10 rounded-full blur-[100px]" />
+                 </div>
+              )}
+            </div>
+          )
+        }
+
+        return null
+      })()}
+
+      {/* Dev Toggle */}
+      <button
+        onClick={() => setIsNight(!isNight)}
+        className="fixed bottom-4 right-4 z-50 bg-black/20 backdrop-blur-md border border-white/10 text-white/50 hover:text-white px-3 py-1 rounded-full text-[10px] font-mono hover:bg-black/40 transition-all uppercase tracking-wider"
+      >
+        {isNight ? "Switch to Day" : "Switch to Night"}
+      </button>
     </main>
   )
 }
