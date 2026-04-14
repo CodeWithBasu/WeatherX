@@ -11,10 +11,18 @@ function getWeatherCondition(weatherCode: number): "clear" | "cloudy" | "rain" |
   return "partly-cloudy"
 }
 
-export async function fetchWeatherData(location: string): Promise<WeatherData> {
+export async function fetchWeatherData(
+  location: string, 
+  coords?: { lat: number; lon: number; timezone: string }
+): Promise<WeatherData> {
   try {
+    let url = `/api/weather?location=${encodeURIComponent(location)}`
+    if (coords) {
+      url += `&lat=${coords.lat}&lon=${coords.lon}&timezone=${encodeURIComponent(coords.timezone)}`
+    }
+    
     // Call our own Next.js Backend API
-    const response = await fetch(`/api/weather?location=${encodeURIComponent(location)}`)
+    const response = await fetch(url)
     
     if (!response.ok) {
       throw new Error("Failed to fetch weather data from backend")
@@ -97,5 +105,18 @@ export async function fetchWeatherData(location: string): Promise<WeatherData> {
   } catch (error) {
     console.error("Error fetching weather:", error)
     throw error
+  }
+}
+
+export async function searchLocations(query: string) {
+  if (query.length < 2) return []
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`)
+    if (!res.ok) throw new Error("Search failed")
+    const data = await res.json()
+    return data.results || []
+  } catch (err) {
+    console.error("Search error:", err)
+    return []
   }
 }
