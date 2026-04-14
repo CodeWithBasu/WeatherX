@@ -66,7 +66,6 @@ export async function GET(request: Request) {
   }
 
   // 2. Fetch Fresh Data (if no cache or expired)
-  const coords = LOCATION_COORDS[location || ""] || (lat && lon ? { lat: parseFloat(lat), lon: parseFloat(lon), timezone: tz || "UTC" } : null)
   let result
 
   if (oikolabKey && coords) {
@@ -227,7 +226,9 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     const end = new Date();
     end.setDate(now.getDate() + 1); // tomorrow (for forecast)
 
-    const url = `https://api.oikolab.com/weather?lat=${coords.lat}&lon=${coords.lon}&api_key=${apiKey}&start=${start.toISOString().split('T')[0]}&end=${end.toISOString().split('T')[0]}`;
+    // Explicitly request parameters
+    const params = "temperature,apparent_temperature,cloud_fraction,wind_speed";
+    const url = `https://api.oikolab.com/weather?lat=${coords.lat}&lon=${coords.lon}&api_key=${apiKey}&param=${params}&start=${start.toISOString().split('T')[0]}&end=${end.toISOString().split('T')[0]}`;
     
     const res = await fetch(url);
     if (!res.ok) {
@@ -235,10 +236,6 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
         throw new Error(`Oikolab error: ${res.status} ${errVal}`);
     }
     const oiko = await res.json();
-    
-    // Oikolab returns data in a "data" object with timestamps as keys
-    // Example: {"data": {"2024-04-13T00:00:00": {"temperature": 15, "wind_speed": 5}, ...}}
-    // We need to extract this into our periods and hourly structure.
     
     const timestamps = Object.keys(oiko.data).sort();
     const currentHour = now.toISOString().substring(0, 13) + ":00:00";
@@ -255,6 +252,13 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
 
+    const mapCondition = (cloudFraction: number | undefined): "clear" | "cloudy" | "partly-cloudy" => {
+        if (cloudFraction === undefined) return "clear";
+        if (cloudFraction > 0.8) return "cloudy";
+        if (cloudFraction > 0.3) return "partly-cloudy";
+        return "clear";
+    }
+
     const periods = ["Morning", "Noon", "Evening", "Night"].map((name, i) => {
         const hour = [6, 12, 18, 0][i];
         const tData = getAtHour(today, hour);
@@ -263,17 +267,20 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
         return {
             time: name,
             temp: Math.round(tData?.temperature || 0),
-            condition: "clear" as const, // Oikolab might need mapping for conditions
+            condition: mapCondition(tData?.cloud_fraction),
             yesterdayTemp: Math.round(yData?.temperature || 0)
         }
     });
 
+    const todayDayStr = today.toISOString().split('T')[0];
+    const yesterdayDayStr = yesterday.toISOString().split('T')[0];
+
     const todayTemps = timestamps
-        .filter(t => t.startsWith(today.toISOString().split('T')[0]))
+        .filter(t => t.startsWith(todayDayStr))
         .map(t => oiko.data[t].temperature);
 
     const yesterdayTemps = timestamps
-        .filter(t => t.startsWith(yesterday.toISOString().split('T')[0]))
+        .filter(t => t.startsWith(yesterdayDayStr))
         .map(t => oiko.data[t].temperature);
 
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
@@ -283,8 +290,8 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
         locationInfo: coords,
         data: {
             currentTemp: currentData?.temperature || 0,
-            feelsLikeTemp: currentData?.temperature || 0, // Oikolab apparent temp param?
-            currentCondition: "clear", // mapping needed
+            feelsLikeTemp: currentData?.apparent_temperature || currentData?.temperature || 0,
+            currentCondition: mapCondition(currentData?.cloud_fraction),
             sunrise: "--:--", 
             sunset: "--:--",
             todayAvgTemp: avg(todayTemps),
@@ -292,7 +299,7 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
             periods,
             hourly: {
                 temperature_2m: timestamps.map(t => oiko.data[t].temperature),
-                weather_code: timestamps.map(t => 0) // dummy
+                weather_code: timestamps.map(t => (oiko.data[t].cloud_fraction > 0.5 ? 3 : 0)) 
             }
         }
     }
