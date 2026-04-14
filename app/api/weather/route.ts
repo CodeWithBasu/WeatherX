@@ -23,6 +23,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const location = searchParams.get("location")
   const apiKey = process.env.WEATHER_API_KEY?.trim()
+  const oikolabKey = process.env.OIKOLAB_API_KEY?.trim()
 
   let coords: LocationCoordinates | null = null
 
@@ -65,17 +66,29 @@ export async function GET(request: Request) {
   }
 
   // 2. Fetch Fresh Data (if no cache or expired)
+  const coords = LOCATION_COORDS[location || ""] || (lat && lon ? { lat: parseFloat(lat), lon: parseFloat(lon), timezone: tz || "UTC" } : null)
   let result
 
-  if (!apiKey) {
-    console.log("No API Key found, using OpenMeteo.")
-    result = await fetchOpenMeteo(location || cacheKey, coords)
-  } else {
+  if (oikolabKey && coords) {
     try {
-      result = await fetchOpenWeatherMap(location || cacheKey, coords, apiKey)
+      console.log("Using Oikolab API...")
+      result = await fetchOikolab(location || cacheKey, coords, oikolabKey)
     } catch (err) {
-      console.error("OWM Fetch failed, falling back to OpenMeteo:", err)
-      result = await fetchOpenMeteo(location || cacheKey, coords)
+      console.error("Oikolab Fetch failed, falling back:", err)
+    }
+  }
+
+  if (!result) {
+    if (!apiKey) {
+      console.log("No Oikolab or OWM Key found, using OpenMeteo.")
+      result = await fetchOpenMeteo(location || cacheKey, coords!)
+    } else {
+      try {
+        result = await fetchOpenWeatherMap(location || cacheKey, coords!, apiKey)
+      } catch (err) {
+        console.error("OWM Fetch failed, falling back to OpenMeteo:", err)
+        result = await fetchOpenMeteo(location || cacheKey, coords!)
+      }
     }
   }
 
@@ -205,4 +218,82 @@ async function fetchOpenMeteo(location: string, coords: LocationCoordinates) {
     today: todayData,
     yesterday: yesterdayData,
   }
+}
+
+async function fetchOikolab(location: string, coords: LocationCoordinates, apiKey: string) {
+    const now = new Date();
+    const start = new Date();
+    start.setDate(now.getDate() - 1); // yesterday
+    const end = new Date();
+    end.setDate(now.getDate() + 1); // tomorrow (for forecast)
+
+    const url = `https://api.oikolab.com/weather?lat=${coords.lat}&lon=${coords.lon}&api_key=${apiKey}&start=${start.toISOString().split('T')[0]}&end=${end.toISOString().split('T')[0]}`;
+    
+    const res = await fetch(url);
+    if (!res.ok) {
+        const errVal = await res.text();
+        throw new Error(`Oikolab error: ${res.status} ${errVal}`);
+    }
+    const oiko = await res.json();
+    
+    // Oikolab returns data in a "data" object with timestamps as keys
+    // Example: {"data": {"2024-04-13T00:00:00": {"temperature": 15, "wind_speed": 5}, ...}}
+    // We need to extract this into our periods and hourly structure.
+    
+    const timestamps = Object.keys(oiko.data).sort();
+    const currentHour = now.toISOString().substring(0, 13) + ":00:00";
+    const currentData = oiko.data[currentHour] || oiko.data[timestamps[timestamps.length - 1]];
+    
+    const getAtHour = (targetDate: Date, hour: number) => {
+        const d = new Date(targetDate);
+        d.setHours(hour, 0, 0, 0);
+        const iso = d.toISOString().substring(0, 13) + ":00:00";
+        return oiko.data[iso] || null;
+    }
+
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    const periods = ["Morning", "Noon", "Evening", "Night"].map((name, i) => {
+        const hour = [6, 12, 18, 0][i];
+        const tData = getAtHour(today, hour);
+        const yData = getAtHour(yesterday, hour);
+        
+        return {
+            time: name,
+            temp: Math.round(tData?.temperature || 0),
+            condition: "clear" as const, // Oikolab might need mapping for conditions
+            yesterdayTemp: Math.round(yData?.temperature || 0)
+        }
+    });
+
+    const todayTemps = timestamps
+        .filter(t => t.startsWith(today.toISOString().split('T')[0]))
+        .map(t => oiko.data[t].temperature);
+
+    const yesterdayTemps = timestamps
+        .filter(t => t.startsWith(yesterday.toISOString().split('T')[0]))
+        .map(t => oiko.data[t].temperature);
+
+    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+    return {
+        provider: "Oikolab",
+        locationInfo: coords,
+        data: {
+            currentTemp: currentData?.temperature || 0,
+            feelsLikeTemp: currentData?.temperature || 0, // Oikolab apparent temp param?
+            currentCondition: "clear", // mapping needed
+            sunrise: "--:--", 
+            sunset: "--:--",
+            todayAvgTemp: avg(todayTemps),
+            yesterdayAvgTemp: avg(yesterdayTemps),
+            periods,
+            hourly: {
+                temperature_2m: timestamps.map(t => oiko.data[t].temperature),
+                weather_code: timestamps.map(t => 0) // dummy
+            }
+        }
+    }
 }
