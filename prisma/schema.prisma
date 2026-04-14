@@ -6,11 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
 }
 
 model WeatherCache {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   location  String   @unique
   lat       Float
   lon       Float
@@ -20,13 +21,13 @@ model WeatherCache {
 }
 
 model SearchHistory {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   query     String
   timestamp DateTime @default(now())
 }
 
 model SavedLocation {
-  id        String   @id @default(cuid())
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique
   lat       Float
   lon       Float
