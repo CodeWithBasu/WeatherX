@@ -144,7 +144,7 @@ export default function WeatherPage() {
             onSettingsClick={() => setSettingsOpen(true)}
           />
 
-          <WeatherSummary data={weatherData} unit={unit} />
+          <WeatherSummary data={weatherData} unit={unit} isNight={isNight} />
 
           <div className="border-t border-weather-border" />
 

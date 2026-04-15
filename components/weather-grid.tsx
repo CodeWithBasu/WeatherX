@@ -53,7 +53,7 @@ export function WeatherGrid({ periods, unit }: WeatherGridProps) {
                 <div className="text-weather-primary text-left">{period.time}</div>
                 <div className="text-weather-primary text-right tabular-nums">{convertTemp(period.temp)}°</div>
                 <div className="flex justify-center items-center w-8">
-                  <WeatherIcon3D condition={period.condition} size={32} />
+                  <WeatherIcon3D condition={period.condition} size={32} isNight={period.time === "Night"} />
                 </div>
                 <div className="flex justify-center items-center text-weather-secondary text-center w-6">
                   {indicator}
@@ -97,7 +97,7 @@ export function WeatherGrid({ periods, unit }: WeatherGridProps) {
                       {convertTemp(period.temp)}°
                     </p>
                     <div className="flex items-center gap-3 relative z-10">
-                      <WeatherIcon3D condition={period.condition} size={60} />
+                      <WeatherIcon3D condition={period.condition} size={60} isNight={period.time === "Night"} />
                     </div>
                   </div>
                 </TooltipTrigger>

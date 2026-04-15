@@ -8,7 +8,9 @@ interface SunTimesProps {
 export function SunTimes({ sunrise, sunset }: SunTimesProps) {
   // Format time from "07:30" to "7:30 AM"
   function formatTime(time: string): string {
+    if (!time || time.includes("--")) return "--:--"
     const [hours, minutes] = time.split(":").map(Number)
+    if (isNaN(hours) || isNaN(minutes)) return "--:--"
     const period = hours >= 12 ? "PM" : "AM"
     const displayHours = hours % 12 || 12
     return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`

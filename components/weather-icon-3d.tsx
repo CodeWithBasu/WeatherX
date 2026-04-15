@@ -6,13 +6,14 @@ interface WeatherIcon3DProps {
   condition: "clear" | "cloudy" | "rain" | "snow" | "partly-cloudy"
   className?: string
   size?: number
+  isNight?: boolean
 }
 
 // ----------------------------------------------------------------------
 // CSS-based 3D Sphere "Clay" Construction
 // ----------------------------------------------------------------------
 
-export function WeatherIcon3D({ condition, className, size = 120 }: WeatherIcon3DProps) {
+export function WeatherIcon3D({ condition, className, size = 120, isNight = false }: WeatherIcon3DProps) {
   const scale = size / 100
 
   return (
@@ -22,22 +23,38 @@ export function WeatherIcon3D({ condition, className, size = 120 }: WeatherIcon3
     >
       <div className="relative w-[100px] h-[100px]" style={{ transform: `scale(${scale})` }}>
         
-        {/* ==================== SUN (Clear) ==================== */}
+        {/* ==================== SUN / MOON (Clear) ==================== */}
         {condition === "clear" && (
           <div className="absolute inset-0 flex items-center justify-center animate-spin-slow">
-            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 to-orange-500 shadow-[inset_-4px_-4px_8px_rgba(200,100,0,0.4),inset_4px_4px_12px_rgba(255,255,255,0.8),0_8px_20px_rgba(255,160,0,0.4)] relative">
-               {/* Shine */}
-               <div className="absolute top-3 left-3 w-6 h-3 bg-white/40 rounded-full rotate-[-45deg] blur-[1px]" />
-            </div>
+            {isNight ? (
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 shadow-[inset_-4px_-4px_8px_rgba(0,0,0,0.3),inset_4px_4px_12px_rgba(255,255,255,0.9),0_8px_20px_rgba(255,255,255,0.2)] relative">
+                {/* Moon craters */}
+                <div className="absolute top-4 left-4 w-4 h-4 rounded-full bg-black/10 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.15)]" />
+                <div className="absolute bottom-6 right-5 w-3 h-3 rounded-full bg-black/10 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.15)]" />
+                <div className="absolute top-8 right-6 w-5 h-5 rounded-full bg-black/10 shadow-[inset_1px_1px_3px_rgba(0,0,0,0.15)]" />
+              </div>
+            ) : (
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-yellow-300 to-orange-500 shadow-[inset_-4px_-4px_8px_rgba(200,100,0,0.4),inset_4px_4px_12px_rgba(255,255,255,0.8),0_8px_20px_rgba(255,160,0,0.4)] relative">
+                 {/* Shine */}
+                 <div className="absolute top-3 left-3 w-6 h-3 bg-white/40 rounded-full rotate-[-45deg] blur-[1px]" />
+              </div>
+            )}
           </div>
         )}
 
         {/* ==================== PARTLY CLOUDY ==================== */}
         {condition === "partly-cloudy" && (
           <div className="relative w-full h-full">
-            {/* Sun Behind */}
+            {/* Sun/Moon Behind */}
             <div className="absolute top-0 right-0 animate-float-delayed">
-              <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-300 to-orange-500 shadow-[inset_-2px_-2px_6px_rgba(200,100,0,0.4),inset_2px_2px_8px_rgba(255,255,255,0.8)]" />
+              {isNight ? (
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gray-200 to-gray-400 shadow-[inset_-2px_-2px_6px_rgba(0,0,0,0.3),inset_2px_2px_8px_rgba(255,255,255,0.9)] relative">
+                  <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-black/10 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.15)]" />
+                  <div className="absolute bottom-3 right-3 w-3 h-3 rounded-full bg-black/10 shadow-[inset_1px_1px_2px_rgba(0,0,0,0.15)]" />
+                </div>
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-yellow-300 to-orange-500 shadow-[inset_-2px_-2px_6px_rgba(200,100,0,0.4),inset_2px_2px_8px_rgba(255,255,255,0.8)]" />
+              )}
             </div>
             {/* Cloud Front */}
             <div className="absolute bottom-2 left-0 animate-float">
