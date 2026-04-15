@@ -23,7 +23,7 @@ const LOCATION_COORDS: Record<string, LocationCoordinates> = {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
-  const location = searchParams.get("location")
+  let location = searchParams.get("location")
   const apiKey = process.env.WEATHER_API_KEY?.trim()
   const oikolabKey = process.env.OIKOLAB_API_KEY?.trim()
 
@@ -34,11 +34,46 @@ export async function GET(request: Request) {
   const tz = searchParams.get("timezone")
 
   if (lat && lon) {
+    let resolvedTimezone = tz || "UTC";
+    let humanLocation = location;
+
+    // Resolve 'auto' timezone if provided
+    if (resolvedTimezone === "auto") {
+      try {
+        const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto`);
+        if (tzRes.ok) {
+           const tzData = await tzRes.json();
+           if (tzData.timezone) resolvedTimezone = tzData.timezone;
+        }
+      } catch (err) {
+        console.error("Coordinate Timezone resolution failed:", err);
+      }
+    }
+
+    // Attempt to get a human-readable name for these coordinates (Reverse Geocoding)
+    if (!location || location.includes(',')) {
+       try {
+          if (apiKey) {
+            const revRes = await fetch(`http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${apiKey}`);
+            if (revRes.ok) {
+              const revData = await revRes.json();
+              if (revData && revData.length > 0) {
+                humanLocation = `${revData[0].name}, ${revData[0].country}`;
+              }
+            }
+          }
+       } catch (err) {
+         console.error("Reverse geocoding failed:", err);
+       }
+    }
+
     coords = { 
       lat: parseFloat(lat), 
       lon: parseFloat(lon), 
-      timezone: tz || "UTC" 
+      timezone: resolvedTimezone 
     }
+    // Update location name for the rest of the flow
+    if (humanLocation) location = humanLocation;
   } else if (location && LOCATION_COORDS[location]) {
     coords = LOCATION_COORDS[location]
   } else if (location) {
