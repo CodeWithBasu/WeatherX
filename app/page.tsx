@@ -109,12 +109,35 @@ export default function WeatherPage() {
 
   const handleMapSelect = async (lat: number, lon: number) => {
     setIsLoadingWeather(true)
+    let humanName = `${lat.toFixed(2)}, ${lon.toFixed(2)}`;
+    
     try {
-      const data = await fetchWeatherData(`${lat.toFixed(2)},${lon.toFixed(2)}`, { 
+      // 1. Attempt Frontend Reverse Geocoding (More reliable for restricted API keys)
+      const googleKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+      if (googleKey) {
+        try {
+          const res = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${googleKey}`);
+          if (res.ok) {
+            const result = await res.json();
+            if (result.results && result.results.length > 0) {
+               const address = result.results[0];
+               const city = address.address_components.find((c: any) => c.types.includes("locality"))?.long_name;
+               const country = address.address_components.find((c: any) => c.types.includes("country"))?.long_name;
+               if (city) humanName = country ? `${city}, ${country}` : city;
+            }
+          }
+        } catch (e) {
+          console.warn("Frontend Geocoding failed:", e);
+        }
+      }
+
+      // 2. Fetch Weather using the human name (or coords fallback)
+      const data = await fetchWeatherData(humanName, { 
         lat, 
         lon, 
         timezone: "auto" 
       })
+      
       setWeatherData(data)
       setLocation(data.location)
       setIsLoaded(true)
