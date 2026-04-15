@@ -176,9 +176,23 @@
   --shadow-y: var(--shadow-y);
   --shadow-x: var(--shadow-x);
   --animate-meteor: meteor 5s linear infinite;
+
+  @keyframes meteor {
+    0% {
+      transform: rotate(var(--angle)) translateX(0);
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      transform: rotate(var(--angle)) translateX(-500px);
+      opacity: 0;
     }
   }
+
   --animate-logo-float: logo-float 4s ease-in-out infinite;
+
   @keyframes logo-float {
     0%, 100% {
       transform: translateY(0) scale(1);

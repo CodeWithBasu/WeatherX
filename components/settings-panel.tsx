@@ -194,7 +194,8 @@ export function SettingsPanel({
       </button>
     </div>
   )
-
+  if (inline) {
+    return (
       <div className="bg-weather-bg border-l border-weather-border p-6 h-auto min-h-full">
         <div className="flex flex-col items-center mb-10 space-y-3">
           <div className="relative">
