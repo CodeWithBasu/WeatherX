@@ -39,6 +39,25 @@ export async function GET(request: Request) {
     }
   } else if (location && LOCATION_COORDS[location]) {
     coords = LOCATION_COORDS[location]
+  } else if (location) {
+    // If not in hardcoded list and no coords provided, try to geocode!
+    try {
+      const cityOnly = location.split(',')[0].trim();
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityOnly)}&count=1&language=en&format=json`);
+      if (geoRes.ok) {
+        const geoData = await geoRes.json();
+        if (geoData.results && geoData.results.length > 0) {
+          const res = geoData.results[0];
+          coords = {
+            lat: res.latitude,
+            lon: res.longitude,
+            timezone: res.timezone || "UTC"
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Geocoding failed for:", location, e);
+    }
   }
 
   if (!coords) {
@@ -226,34 +245,50 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     const end = new Date();
     end.setDate(now.getDate() + 1); // tomorrow (for forecast)
 
-    // Explicitly request parameters
-    const params = "temperature,apparent_temperature,cloud_fraction,wind_speed";
-    const url = `https://api.oikolab.com/weather?lat=${coords.lat}&lon=${coords.lon}&api_key=${apiKey}&param=${params}&start=${start.toISOString().split('T')[0]}&end=${end.toISOString().split('T')[0]}`;
+    // Oikolab API query building
+    const params = "param=temperature&param=total_cloud_cover&param=wind_speed";
+    const url = `https://api.oikolab.com/weather?lat=${coords.lat}&lon=${coords.lon}&${params}&start=${start.toISOString().split('T')[0]}&end=${end.toISOString().split('T')[0]}`;
     
-    const res = await fetch(url);
+    // Explicitly pass api-key as an HTTP header
+    const res = await fetch(url, { headers: { "api-key": apiKey } });
     if (!res.ok) {
         const errVal = await res.text();
         throw new Error(`Oikolab error: ${res.status} ${errVal}`);
     }
     const oiko = await res.json();
     
-    const timestamps = Object.keys(oiko.data).sort();
-    const currentHour = now.toISOString().substring(0, 13) + ":00:00";
-    const currentData = oiko.data[currentHour] || oiko.data[timestamps[timestamps.length - 1]];
+    // Oikolab returns a stringified Pandas DataFrame in `data` field
+    const d = JSON.parse(oiko.data);
     
-    const getAtHour = (targetDate: Date, hour: number) => {
-        const d = new Date(targetDate);
-        d.setHours(hour, 0, 0, 0);
-        const iso = d.toISOString().substring(0, 13) + ":00:00";
-        return oiko.data[iso] || null;
+    // Find column indices
+    const tempColIdx = d.columns.findIndex((c: string) => c.includes("temperature"));
+    const cloudColIdx = d.columns.findIndex((c: string) => c.includes("total_cloud_cover"));
+    const windColIdx = d.columns.findIndex((c: string) => c.includes("wind_speed"));
+
+    // Function to get the closest hour data
+    const getAtHour = (targetDate: Date, targetHour: number) => {
+        const dTarget = new Date(targetDate);
+        dTarget.setHours(targetHour, 0, 0, 0);
+        const targetTs = Math.floor(dTarget.getTime() / 1000);
+        
+        let closestIdx = -1;
+        let minDiff = Infinity;
+        for (let i = 0; i < d.index.length; i++) {
+            const diff = Math.abs(d.index[i] - targetTs);
+            if (diff < minDiff) {
+                minDiff = diff;
+                closestIdx = i;
+            }
+        }
+        return closestIdx !== -1 ? d.data[closestIdx] : null;
     }
 
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(today.getDate() - 1);
 
-    const mapCondition = (cloudFraction: number | undefined): "clear" | "cloudy" | "partly-cloudy" => {
-        if (cloudFraction === undefined) return "clear";
+    const mapCondition = (cloudFraction: number | null | undefined): "clear" | "cloudy" | "partly-cloudy" => {
+        if (cloudFraction == null) return "clear";
         if (cloudFraction > 0.8) return "cloudy";
         if (cloudFraction > 0.3) return "partly-cloudy";
         return "clear";
@@ -266,40 +301,58 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
         
         return {
             time: name,
-            temp: Math.round(tData?.temperature || 0),
-            condition: mapCondition(tData?.cloud_fraction),
-            yesterdayTemp: Math.round(yData?.temperature || 0)
+            temp: Math.round((tData && tempColIdx !== -1 ? tData[tempColIdx] : 0)),
+            condition: mapCondition(tData && cloudColIdx !== -1 ? tData[cloudColIdx] : 0),
+            yesterdayTemp: Math.round((yData && tempColIdx !== -1 ? yData[tempColIdx] : 0))
         }
     });
 
-    const todayDayStr = today.toISOString().split('T')[0];
-    const yesterdayDayStr = yesterday.toISOString().split('T')[0];
+    // Averages
+    const todayTargetStart = Math.floor(new Date(today.setHours(0,0,0,0)).getTime() / 1000);
+    const todayTargetEnd = todayTargetStart + 86400;
+    const yesterdayTargetStart = todayTargetStart - 86400;
 
-    const todayTemps = timestamps
-        .filter(t => t.startsWith(todayDayStr))
-        .map(t => oiko.data[t].temperature);
+    let todayTempSum = 0;
+    let todayTempCount = 0;
+    let yesterdayTempSum = 0;
+    let yesterdayTempCount = 0;
+    
+    for (let i = 0; i < d.index.length; i++) {
+        const ts = d.index[i];
+        const temp = d.data[i][tempColIdx];
+        if (ts >= todayTargetStart && ts < todayTargetEnd) {
+            todayTempSum += temp;
+            todayTempCount++;
+        } else if (ts >= yesterdayTargetStart && ts < todayTargetStart) {
+            yesterdayTempSum += temp;
+            yesterdayTempCount++;
+        }
+    }
 
-    const yesterdayTemps = timestamps
-        .filter(t => t.startsWith(yesterdayDayStr))
-        .map(t => oiko.data[t].temperature);
-
-    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+    const todayAvg = todayTempCount ? todayTempSum / todayTempCount : 0;
+    const yesterdayAvg = yesterdayTempCount ? yesterdayTempSum / yesterdayTempCount : 0;
+    
+    // Current Data
+    const currentDate = new Date();
+    const currentDataRow = getAtHour(currentDate, currentDate.getHours());
+    const currentTemp = currentDataRow && tempColIdx !== -1 ? currentDataRow[tempColIdx] : 0;
+    const currentClouds = currentDataRow && cloudColIdx !== -1 ? currentDataRow[cloudColIdx] : 0;
 
     return {
         provider: "Oikolab",
         locationInfo: coords,
         data: {
-            currentTemp: currentData?.temperature || 0,
-            feelsLikeTemp: currentData?.apparent_temperature || currentData?.temperature || 0,
-            currentCondition: mapCondition(currentData?.cloud_fraction),
+            currentTemp: currentTemp,
+            feelsLikeTemp: currentTemp, // Apparent temp omitted for simplicity/compatibility
+            currentCondition: mapCondition(currentClouds),
             sunrise: "--:--", 
             sunset: "--:--",
-            todayAvgTemp: avg(todayTemps),
-            yesterdayAvgTemp: avg(yesterdayTemps),
+            todayAvgTemp: todayAvg,
+            yesterdayAvgTemp: yesterdayAvg,
             periods,
             hourly: {
-                temperature_2m: timestamps.map(t => oiko.data[t].temperature),
-                weather_code: timestamps.map(t => (oiko.data[t].cloud_fraction > 0.5 ? 3 : 0)) 
+                temperature_2m: d.data.map((row: any) => row[tempColIdx]),
+                weather_code: d.data.map((row: any) => (row[cloudColIdx] > 0.5 ? 3 : 0)) 
             }
         }
     }

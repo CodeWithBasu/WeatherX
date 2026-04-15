@@ -98,6 +98,14 @@ export default function WeatherPage() {
     localStorage.setItem("weather-locations", JSON.stringify(updated))
   }
 
+  const handleAddLocation = (loc: string) => {
+    if (locations.includes(loc)) return
+    const updated = [...locations, loc]
+    setLocations(updated)
+    localStorage.setItem("weather-locations", JSON.stringify(updated))
+    handleLocationChange(loc) // Optionally switch to it immediately
+  }
+
   if (error) {
     return (
       <main className="min-h-screen bg-weather-bg text-weather-primary font-mono flex items-center justify-center flex-col gap-4 p-4">
@@ -159,6 +167,7 @@ export default function WeatherPage() {
             onLocationChange={handleLocationChange}
             locations={locations}
             onRemoveLocation={handleRemoveLocation}
+            onAddLocation={handleAddLocation}
             inline={true}
           />
         </div>
@@ -174,6 +183,7 @@ export default function WeatherPage() {
           onLocationChange={handleLocationChange}
           locations={locations}
           onRemoveLocation={handleRemoveLocation}
+          onAddLocation={handleAddLocation}
           inline={false}
         />
       </div>

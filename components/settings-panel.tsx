@@ -1,6 +1,7 @@
 "use client"
 
-import { X, Plus, Minus } from "lucide-react"
+import { useState } from "react"
+import { X, Plus, Minus, Search } from "lucide-react"
 
 interface SettingsPanelProps {
   isOpen: boolean
@@ -11,6 +12,7 @@ interface SettingsPanelProps {
   onLocationChange: (location: string) => void
   locations: string[]
   onRemoveLocation: (location: string) => void
+  onAddLocation: (location: string) => void
   inline?: boolean
 }
 
@@ -23,8 +25,20 @@ export function SettingsPanel({
   onLocationChange,
   locations,
   onRemoveLocation,
+  onAddLocation,
   inline = false,
 }: SettingsPanelProps) {
+  const [isAdding, setIsAdding] = useState(false)
+  const [addQuery, setAddQuery] = useState("")
+
+  const handleAddSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (addQuery.trim()) {
+      onAddLocation(addQuery.trim())
+      setAddQuery("")
+      setIsAdding(false)
+    }
+  }
 
   const locationButtons = (
     <>
@@ -66,15 +80,41 @@ export function SettingsPanel({
       <div className="py-4">
         <hr className="border-weather-border" />
       </div>
-      <button
-        onClick={() => {
-          // TODO: Implement add location functionality
-        }}
-        className="w-full flex items-center justify-between px-4 py-2 font-mono text-sm border border-weather-border bg-transparent text-weather-accent hover:border-weather-accent hover:text-weather-primary transition-colors duration-300"
-      >
-        <span>Add Location</span>
-        <Plus size={16} strokeWidth={1.5} />
-      </button>
+      {isAdding ? (
+        <form onSubmit={handleAddSubmit} className="flex flex-col gap-2">
+          <input
+            type="text"
+            placeholder="Search a city..."
+            value={addQuery}
+            onChange={(e) => setAddQuery(e.target.value)}
+            className="w-full px-4 py-2 font-mono text-sm bg-transparent border border-weather-accent text-weather-primary focus:outline-none focus:ring-1 focus:ring-weather-primary"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <button
+              type="submit"
+              className="flex-1 py-1 font-mono text-xs border border-weather-primary bg-weather-primary text-weather-bg hover:opacity-90"
+            >
+              Add
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsAdding(false)}
+              className="flex-1 py-1 font-mono text-xs border border-weather-border text-weather-secondary hover:text-weather-primary"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      ) : (
+        <button
+          onClick={() => setIsAdding(true)}
+          className="w-full flex items-center justify-between px-4 py-2 font-mono text-sm border border-weather-border bg-transparent text-weather-accent hover:border-weather-accent hover:text-weather-primary transition-colors duration-300"
+        >
+          <span>Add Location</span>
+          <Plus size={16} strokeWidth={1.5} />
+        </button>
+      )}
     </>
   )
 
