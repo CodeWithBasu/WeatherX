@@ -165,7 +165,7 @@ export default function WeatherPage() {
 
       <div className="hidden lg:block w-72 flex-shrink-0 relative z-10">
         <div
-          className={`h-screen sticky top-0 transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
+          className={`h-screen sticky top-0 overflow-y-auto transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
         >
           <SettingsPanel
             isOpen={true}

@@ -197,7 +197,7 @@ export function SettingsPanel({
 
   if (inline) {
     return (
-      <div className="bg-weather-bg border-l border-weather-border p-6 h-full">
+      <div className="bg-weather-bg border-l border-weather-border p-6 h-auto min-h-full">
         <h2 className="hidden text-weather-primary text-lg font-mono mb-8">Settings</h2>
 
         <div className="space-y-8">
