@@ -197,7 +197,10 @@ export function SettingsPanel({
 
       <div className="bg-weather-bg border-l border-weather-border p-6 h-auto min-h-full">
         <div className="flex flex-col items-center mb-10 space-y-3">
-          <img src="/logo.png" alt="WeatherX Logo" className="w-16 h-16 object-contain" />
+          <div className="relative">
+            <div className="absolute inset-0 bg-weather-accent/20 blur-xl rounded-full animate-logo-float" />
+            <img src="/logo.jpg" alt="WeatherX Logo" className="w-16 h-16 object-contain relative z-10 animate-logo-float" />
+          </div>
           <h2 className="text-weather-primary text-xl font-mono tracking-tighter uppercase font-bold">WeatherX</h2>
           <div className="w-8 h-px bg-weather-border" />
         </div>
@@ -235,7 +238,7 @@ export function SettingsPanel({
       >
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <img src="/logo.jpg" alt="Logo" className="w-8 h-8 object-contain animate-logo-float" />
             <h2 className="text-weather-primary text-lg font-mono">WeatherX Settings</h2>
           </div>
           <button

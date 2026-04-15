@@ -27,7 +27,7 @@ export function WeatherHeader({ location, timezone, onSettingsClick }: WeatherHe
           {formatDate(currentTime, timezone)} · {formatTime(currentTime, timezone)}
         </p>
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="X" className="w-5 h-5 md:w-6 md:h-6 object-contain opacity-80" />
+          <img src="/logo.jpg" alt="X" className="w-5 h-5 md:w-6 md:h-6 object-contain opacity-80 animate-logo-float" />
           <h1 className="text-weather-primary text-lg md:text-xl lg:text-2xl">{location}</h1>
         </div>
       </div>

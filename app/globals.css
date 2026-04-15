@@ -176,17 +176,17 @@
   --shadow-y: var(--shadow-y);
   --shadow-x: var(--shadow-x);
   --animate-meteor: meteor 5s linear infinite;
-  @keyframes meteor {
-  0% {
-    transform: rotate(var(--angle)) translateX(0);
-    opacity: 1;
     }
-  70% {
-    opacity: 1;
+  }
+  --animate-logo-float: logo-float 4s ease-in-out infinite;
+  @keyframes logo-float {
+    0%, 100% {
+      transform: translateY(0) scale(1);
+      filter: drop-shadow(0 0 0px rgba(255, 255, 255, 0));
     }
-  100% {
-    transform: rotate(var(--angle)) translateX(-500px);
-    opacity: 0;
+    50% {
+      transform: translateY(-5px) scale(1.05);
+      filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.2));
     }
   }
 }
@@ -275,4 +275,8 @@
 
 .animate-noise-pan {
   animation: noise-pan 30s infinite linear;
+}
+
+.animate-logo-float {
+  animation: logo-float 4s ease-in-out infinite;
 }

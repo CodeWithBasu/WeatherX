@@ -21,8 +21,8 @@ export const metadata: Metadata = {
   description: "Advanced data-driven weather dashboard with satellite targeting.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/icon.png",
-    apple: "/icon.png",
+    icon: "/icon.jpg",
+    apple: "/icon.jpg",
   }
 }
 
