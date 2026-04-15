@@ -7,7 +7,7 @@ interface MapSectionProps {
   lat: number
   lon: number
   locationName: string
-  onLocationSelect?: (lat: number, lon: number) => void
+  onLocationSelect?: (lat: number, lon: number, name?: string) => void
 }
 
 export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSectionProps) {
@@ -90,11 +90,33 @@ export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSect
         markerRef.current = marker;
 
         // Click to select location
-        map.addListener("click", (e: google.maps.MapMouseEvent) => {
+        map.addListener("click", async (e: google.maps.MapMouseEvent) => {
           if (e.latLng && onLocationSelect) {
             const clickedLat = e.latLng.lat();
             const clickedLng = e.latLng.lng();
-            onLocationSelect(clickedLat, clickedLng);
+            
+            // Attempt reverse geocoding
+            let geocodedName: string | undefined;
+            try {
+              const { Geocoder } = await importLibrary("geocoding") as google.maps.GeocodingLibrary;
+              const geocoder = new Geocoder();
+              const response = await geocoder.geocode({ location: { lat: clickedLat, lng: clickedLng } });
+              
+              if (response.results && response.results.length > 0) {
+                 const result = response.results[0];
+                 const city = result.address_components.find(c => c.types.includes("locality"))?.long_name;
+                 const country = result.address_components.find(c => c.types.includes("country"))?.long_name;
+                 if (city) {
+                   geocodedName = country ? `${city}, ${country}` : city;
+                 } else {
+                   geocodedName = result.formatted_address.split(',').slice(0, 2).join(', ');
+                 }
+              }
+            } catch (err) {
+              console.warn("Geocoding failed on click:", err);
+            }
+
+            onLocationSelect(clickedLat, clickedLng, geocodedName);
           }
         });
 
