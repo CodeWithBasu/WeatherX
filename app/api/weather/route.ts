@@ -286,6 +286,7 @@ async function fetchOpenWeatherMap(location: string, coords: LocationCoordinates
 
   return {
     provider: "OpenWeatherMap",
+    location,
     locationInfo: coords,
     data: {
       currentTemp: currentData.main.temp,
@@ -326,6 +327,7 @@ async function fetchOpenMeteo(location: string, coords: LocationCoordinates) {
 
   return {
     provider: "Open-Meteo",
+    location,
     locationInfo: {
         ...coords,
         timezone: todayData.timezone // use provider timezone if available
@@ -461,6 +463,7 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
 
     return {
         provider: "Oikolab",
+        location,
         locationInfo: coords,
         data: {
             currentTemp: currentTemp,

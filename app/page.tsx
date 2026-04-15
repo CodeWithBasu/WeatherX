@@ -118,6 +118,13 @@ export default function WeatherPage() {
       setWeatherData(data)
       setLocation(data.location)
       setIsLoaded(true)
+      
+      // Auto-add to locations list if not already there
+      if (data.location && !locations.includes(data.location)) {
+        const updated = [...locations, data.location];
+        setLocations(updated);
+        localStorage.setItem("weather-locations", JSON.stringify(updated));
+      }
     } catch (err: any) {
       setError(err.message)
     } finally {
