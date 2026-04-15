@@ -182,7 +182,7 @@ export default function WeatherPage() {
         </div>
       </div>
 
-      <div className="hidden lg:block w-72 flex-shrink-0 relative z-10">
+      <div className="hidden lg:block w-72 shrink-0 relative z-10">
         <div
           className={`h-screen sticky top-0 overflow-y-auto transition-opacity duration-300 ${isLoaded ? "opacity-100" : "opacity-0"}`}
         >
@@ -250,7 +250,7 @@ export default function WeatherPage() {
           return (
             <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
               {/* Day Sky Base Tint - ALWAYS Visible in Day Mode */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-900/20 via-black to-black opacity-100" />
+              <div className="absolute inset-0 bg-linear-to-br from-blue-900/20 via-black to-black opacity-100" />
 
               {/* Debug Info (Remove later) */}
               <div className="absolute top-2 left-2 text-[10px] text-white/30 font-mono z-50">
@@ -262,12 +262,12 @@ export default function WeatherPage() {
                  <div className="absolute -top-[20%] -right-[20%] w-[100%] h-[100%] bg-blue-500/10 blur-[100px] rounded-full animate-pulse" />
               )}
                {(condition === "clear" || condition === "partly-cloudy") && (
-                 <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[80%] bg-gradient-to-br from-orange-400/30 via-yellow-500/10 to-transparent blur-3xl opacity-100 animate-spin-slow" style={{ animationDuration: '40s' }} />
+                  <div className="absolute top-[-10%] right-[-10%] w-[80%] h-[80%] bg-linear-to-br from-orange-400/30 via-yellow-500/10 to-transparent blur-3xl opacity-100 animate-spin-slow" style={{ animationDuration: '40s' }} />
               )}
               
               {/* Rain (Rainy) */}
               {condition === "rain" && (
-                <div className="absolute inset-0 bg-gradient-to-b from-blue-900/30 to-transparent">
+                <div className="absolute inset-0 bg-linear-to-b from-blue-900/30 to-transparent">
                    {[...Array(50)].map((_, i) => (
                       <div 
                         key={i}

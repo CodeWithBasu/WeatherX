@@ -13,7 +13,7 @@ interface MapSectionProps {
 export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSectionProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<google.maps.Map | null>(null)
-  const markerRef = useRef<google.maps.marker.AdvancedMarkerElement | null>(null)
+  const markerRef = useRef<google.maps.Marker | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
@@ -27,7 +27,7 @@ export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSect
     async function initMap() {
       try {
         setOptions({
-          apiKey: apiKey!,
+          key: apiKey!,
           version: "weekly",
         });
 
@@ -40,7 +40,6 @@ export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSect
         const mapOptions: google.maps.MapOptions = {
           center: { lat, lng: lon },
           zoom: 12,
-          mapId: 'DEMO_MAP_ID', // Required for AdvancedMarkerElement
           styles: [
             { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
             { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
@@ -83,7 +82,7 @@ export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSect
         const map = new Map(mapRef.current, mapOptions);
         mapInstanceRef.current = map;
 
-        const marker = new AdvancedMarkerElement({
+        const marker = new google.maps.Marker({
           map: map,
           position: { lat, lng: lon },
           title: locationName,
@@ -115,7 +114,7 @@ export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSect
     if (mapInstanceRef.current && markerRef.current) {
       const pos = { lat, lng: lon };
       mapInstanceRef.current.setCenter(pos);
-      markerRef.current.position = pos;
+      markerRef.current.setPosition(pos);
     }
   }, [lat, lon]);
 
