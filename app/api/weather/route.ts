@@ -42,21 +42,55 @@ export async function GET(request: Request) {
   } else if (location) {
     // If not in hardcoded list and no coords provided, try to geocode!
     try {
-      const cityOnly = location.split(',')[0].trim();
-      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityOnly)}&count=1&language=en&format=json`);
+      const cityOnly = location.split(',')[0].trim()
+      let found = false;
+
+      // 1. Try Open-Meteo Geocoding
+      const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityOnly)}&count=1&language=en&format=json`)
       if (geoRes.ok) {
-        const geoData = await geoRes.json();
+        const geoData = await geoRes.json()
         if (geoData.results && geoData.results.length > 0) {
-          const res = geoData.results[0];
+          const res = geoData.results[0]
           coords = {
             lat: res.latitude,
             lon: res.longitude,
             timezone: res.timezone || "UTC"
-          };
+          }
+          found = true;
+        }
+      }
+
+      // 2. Try OpenWeatherMap Geocoding Fallback if Open-Meteo failed
+      if (!found && apiKey) {
+        const owmRes = await fetch(`http://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(cityOnly)}&limit=1&appid=${apiKey}`)
+        if (owmRes.ok) {
+           const owmData = await owmRes.json()
+           if (owmData && owmData.length > 0) {
+             const res = owmData[0]
+             
+             // OWM doesn't immediately yield a timezone strictly, so we bounce a lightweight query to OpenMeteo to resolve the IANA time string for local frontend date display
+             let resolvedTimezone = "UTC";
+             try {
+                const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${res.lat}&longitude=${res.lon}&timezone=auto`);
+                if (tzRes.ok) {
+                   const tzData = await tzRes.json();
+                   if (tzData.timezone) resolvedTimezone = tzData.timezone;
+                }
+             } catch(e) {
+                // Ignore gracefully
+             }
+
+             coords = {
+               lat: res.lat,
+               lon: res.lon,
+               timezone: resolvedTimezone
+             }
+             found = true;
+           }
         }
       }
     } catch (e) {
-      console.error("Geocoding failed for:", location, e);
+      console.error("Geocoding failed for:", location, e)
     }
   }
 
