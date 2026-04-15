@@ -1,3 +1,5 @@
+"use client"
+
 import type { WeatherData } from "./mock-weather-data"
 
 function getWeatherCondition(weatherCode: number): "clear" | "cloudy" | "rain" | "snow" | "partly-cloudy" {
@@ -21,46 +23,41 @@ export async function fetchWeatherData(
       url += `&lat=${coords.lat}&lon=${coords.lon}&timezone=${encodeURIComponent(coords.timezone)}`
     }
     
-    // Call our own Next.js Backend API
     const response = await fetch(url)
+    const result = await response.json().catch(() => ({}))
     
     if (!response.ok) {
-      const errData = await response.json().catch(() => ({}))
-      throw new Error(errData.error || "Failed to fetch weather data from backend")
+      throw new Error(result.error || "Failed to fetch weather data from backend")
     }
 
-    const data = await response.json()
-    
-    // Check if we are using the Normalized format (from OWM or future providers)
-    if (data.data) {
-        const d = data.data
+    // Modern provider data format (Oikolab, OWM)
+    if (result.data) {
+        const d = result.data
         return {
-          location,
-          timezone: data.locationInfo?.timezone || "UTC",
+          location: location.includes(",") ? location : (d.location || location),
+          timezone: result.locationInfo?.timezone || "UTC",
           currentTemp: Math.round(d.currentTemp),
           feelsLikeTemp: Math.round(d.feelsLikeTemp),
           currentCondition: d.currentCondition,
           yesterdayAvgTemp: Math.round(d.yesterdayAvgTemp),
           todayAvgTemp: Math.round(d.todayAvgTemp),
-          periods: d.periods || [], // Ensure periods is at least an empty array
+          periods: d.periods || [],
           sunrise: d.sunrise,
           sunset: d.sunset,
           lastUpdated: new Date(),
-          lat: data.locationInfo?.lat || 0,
-          lon: data.locationInfo?.lon || 0,
+          lat: result.locationInfo?.lat || 0,
+          lon: result.locationInfo?.lon || 0,
         }
     }
 
-    // Fallback: Handle Open-Meteo format (Old logic)
-    if (!data.today || !data.yesterday) {
+    // Fallback: Handle raw Open-Meteo format
+    if (!result.today || !result.yesterday) {
        throw new Error("Invalid data format received from backend")
     }
 
-    const { today, yesterday, locationInfo } = data
+    const { today, yesterday, locationInfo } = result
 
-    // --- Process Data (Same logic as before, just using the backend response) ---
     const currentHour = new Date().getHours()
-    
     const todayTemps = today.hourly.temperature_2m
     const yesterdayTemps = yesterday.hourly.temperature_2m
     

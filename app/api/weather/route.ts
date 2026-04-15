@@ -132,12 +132,26 @@ export async function GET(request: Request) {
     }
   }
 
-  if (!coords) {
-    return NextResponse.json(
-      { error: "Could not resolve location coordinates" },
-      { status: 400 }
-    )
-  }
+    if (!coords && location) {
+      // 3. Last Resort: Detect if location string itself contains coordinates "lat, lon"
+      const coordMatch = location.match(/^(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)$/);
+      if (coordMatch) {
+         coords = {
+           lat: parseFloat(coordMatch[1]),
+           lon: parseFloat(coordMatch[2]),
+           timezone: "UTC"
+         };
+         console.log("Detected coordinates in location string:", coords);
+      }
+    }
+
+    if (!coords) {
+      console.error("DEBUG: Failed to resolve coords for location:", location, "params:", {lat, lon});
+      return NextResponse.json(
+        { error: `Unable to locate "${location || 'unknown'}". Please try a city name or coordinates.` },
+        { status: 400 }
+      )
+    }
 
   // Use a unique key for caching (location name or lat,lon)
   const cacheKey = location || `${coords.lat},${coords.lon}`
