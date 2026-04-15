@@ -17,6 +17,8 @@ export interface WeatherData {
   sunrise: string
   sunset: string
   lastUpdated: Date
+  lat: number
+  lon: number
 }
 
 export function getMockWeatherData(): WeatherData {
@@ -37,5 +39,7 @@ export function getMockWeatherData(): WeatherData {
     sunrise: "06:45",
     sunset: "17:30",
     lastUpdated: new Date(),
+    lat: 40.6782,
+    lon: -73.9442,
   }
 }

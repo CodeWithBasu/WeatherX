@@ -44,7 +44,9 @@ export async function fetchWeatherData(
           periods: d.periods || [], // Ensure periods is at least an empty array
           sunrise: d.sunrise,
           sunset: d.sunset,
-          lastUpdated: new Date()
+          lastUpdated: new Date(),
+          lat: data.locationInfo?.lat || 0,
+          lon: data.locationInfo?.lon || 0,
         }
     }
 
@@ -100,6 +102,8 @@ export async function fetchWeatherData(
       sunrise,
       sunset,
       lastUpdated: new Date(),
+      lat: locationInfo.lat,
+      lon: locationInfo.lon,
     }
 
   } catch (error) {

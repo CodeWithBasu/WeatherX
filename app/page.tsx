@@ -11,6 +11,7 @@ import { fetchWeatherData } from "@/lib/weather-api"
 import type { WeatherData } from "@/lib/mock-weather-data"
 import { Meteors } from "@/components/ui/meteors"
 import { Particles } from "@/components/ui/particles"
+import { MapSection } from "@/components/map-section"
 
 export default function WeatherPage() {
   const [isLoaded, setIsLoaded] = useState(false)
@@ -151,6 +152,14 @@ export default function WeatherPage() {
           <SunTimes sunrise={weatherData.sunrise} sunset={weatherData.sunset} />
 
           <WeatherGrid periods={weatherData.periods} unit={unit} />
+          
+          <div className="lg:hidden mt-4">
+             <MapSection 
+                lat={weatherData.lat} 
+                lon={weatherData.lon} 
+                locationName={location} 
+             />
+          </div>
         </div>
       </div>
 
@@ -170,6 +179,14 @@ export default function WeatherPage() {
             onAddLocation={handleAddLocation}
             inline={true}
           />
+          <div className="mt-8 px-4">
+             <div className="h-px bg-weather-border mb-8" />
+             <MapSection 
+                lat={weatherData.lat} 
+                lon={weatherData.lon} 
+                locationName={location} 
+             />
+          </div>
         </div>
       </div>
 
