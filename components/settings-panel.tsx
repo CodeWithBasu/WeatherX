@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
-import { X, Plus, Minus, Search } from "lucide-react"
+import { useState, useEffect } from "react"
+import { X, Plus, Minus, Search, Loader2 } from "lucide-react"
+import { searchLocations } from "@/lib/weather-api"
 
 interface SettingsPanelProps {
   isOpen: boolean
@@ -30,12 +31,44 @@ export function SettingsPanel({
 }: SettingsPanelProps) {
   const [isAdding, setIsAdding] = useState(false)
   const [addQuery, setAddQuery] = useState("")
+  const [suggestions, setSuggestions] = useState<any[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+
+  useEffect(() => {
+    if (addQuery.trim().length < 2) {
+      setSuggestions([])
+      setIsSearching(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const results = await searchLocations(addQuery)
+        setSuggestions(results)
+      } catch (err) {
+        setSuggestions([])
+      } finally {
+        setIsSearching(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [addQuery])
+
+  const handleSuggestionClick = (name: string) => {
+    onAddLocation(name)
+    setAddQuery("")
+    setSuggestions([])
+    setIsAdding(false)
+  }
 
   const handleAddSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     if (addQuery.trim()) {
       onAddLocation(addQuery.trim())
       setAddQuery("")
+      setSuggestions([])
       setIsAdding(false)
     }
   }
@@ -81,15 +114,34 @@ export function SettingsPanel({
         <hr className="border-weather-border" />
       </div>
       {isAdding ? (
-        <form onSubmit={handleAddSubmit} className="flex flex-col gap-2">
-          <input
-            type="text"
-            placeholder="Search a city..."
-            value={addQuery}
-            onChange={(e) => setAddQuery(e.target.value)}
-            className="w-full px-4 py-2 font-mono text-sm bg-transparent border border-weather-accent text-weather-primary focus:outline-none focus:ring-1 focus:ring-weather-primary"
-            autoFocus
-          />
+        <form onSubmit={handleAddSubmit} className="flex flex-col gap-2 relative">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search a city..."
+              value={addQuery}
+              onChange={(e) => setAddQuery(e.target.value)}
+              className="w-full pl-8 pr-4 py-2 font-mono text-sm bg-transparent border border-weather-accent text-weather-primary focus:outline-none focus:ring-1 focus:ring-weather-primary"
+              autoFocus
+            />
+            <div className="absolute left-2 top-1/2 -translate-y-1/2 text-weather-accent">
+              {isSearching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+            </div>
+            
+            {suggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-weather-bg border border-weather-border shadow-lg z-[60] max-h-48 overflow-y-auto">
+                {suggestions.map((s, idx) => (
+                  <div
+                    key={`${s.name}-${idx}`}
+                    onClick={() => handleSuggestionClick(s.name)}
+                    className="px-4 py-2 text-sm font-mono hover:bg-white/10 cursor-pointer border-b border-weather-border last:border-0"
+                  >
+                    {s.name} <span className="text-weather-secondary text-xs block">{s.country}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex gap-2">
             <button
               type="submit"
