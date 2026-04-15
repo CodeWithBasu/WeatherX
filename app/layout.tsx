@@ -17,9 +17,13 @@ const courierPrime = Courier_Prime({
 })
 
 export const metadata: Metadata = {
-  title: "Weather",
-  description: "Minimal weather app - today compared to yesterday",
-    generator: 'v0.app'
+  title: "WeatherX | Precision Atmosphere",
+  description: "Advanced data-driven weather dashboard with satellite targeting.",
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  }
 }
 
 export const viewport: Viewport = {

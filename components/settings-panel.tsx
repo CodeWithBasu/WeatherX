@@ -195,10 +195,12 @@ export function SettingsPanel({
     </div>
   )
 
-  if (inline) {
-    return (
       <div className="bg-weather-bg border-l border-weather-border p-6 h-auto min-h-full">
-        <h2 className="hidden text-weather-primary text-lg font-mono mb-8">Settings</h2>
+        <div className="flex flex-col items-center mb-10 space-y-3">
+          <img src="/logo.png" alt="WeatherX Logo" className="w-16 h-16 object-contain" />
+          <h2 className="text-weather-primary text-xl font-mono tracking-tighter uppercase font-bold">WeatherX</h2>
+          <div className="w-8 h-px bg-weather-border" />
+        </div>
 
         <div className="space-y-8">
           <div className="space-y-3">
@@ -232,7 +234,10 @@ export function SettingsPanel({
         }`}
       >
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-weather-primary text-lg font-mono">Settings</h2>
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
+            <h2 className="text-weather-primary text-lg font-mono">WeatherX Settings</h2>
+          </div>
           <button
             onClick={onClose}
             className="p-2 -m-2 text-weather-accent hover:text-weather-primary transition-colors duration-300"
