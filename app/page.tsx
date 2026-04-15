@@ -104,7 +104,25 @@ export default function WeatherPage() {
     const updated = [...locations, loc]
     setLocations(updated)
     localStorage.setItem("weather-locations", JSON.stringify(updated))
-    handleLocationChange(loc) // Optionally switch to it immediately
+    handleLocationChange(loc)
+  }
+
+  const handleMapSelect = async (lat: number, lon: number) => {
+    setIsLoadingWeather(true)
+    try {
+      const data = await fetchWeatherData(`${lat.toFixed(2)},${lon.toFixed(2)}`, { 
+        lat, 
+        lon, 
+        timezone: "auto" 
+      })
+      setWeatherData(data)
+      setLocation(data.location)
+      setIsLoaded(true)
+    } catch (err: any) {
+      setError(err.message)
+    } finally {
+      setIsLoadingWeather(false)
+    }
   }
 
   if (error) {
@@ -158,6 +176,7 @@ export default function WeatherPage() {
                 lat={weatherData.lat} 
                 lon={weatherData.lon} 
                 locationName={location} 
+                onLocationSelect={handleMapSelect}
              />
           </div>
         </div>
@@ -185,6 +204,7 @@ export default function WeatherPage() {
                 lat={weatherData.lat} 
                 lon={weatherData.lon} 
                 locationName={location} 
+                onLocationSelect={handleMapSelect}
              />
           </div>
         </div>
