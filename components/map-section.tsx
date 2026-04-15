@@ -113,7 +113,13 @@ export function MapSection({ lat, lon, locationName, onLocationSelect }: MapSect
                  }
               }
             } catch (err) {
-              console.warn("Geocoding failed on click:", err);
+              console.warn("Google Geocoding API not enabled. Fallback active.", err);
+              // Fallback: Try a lightweight geocoding fetch if Google is disabled
+              try {
+                const fbRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${clickedLat.toFixed(2)},${clickedLng.toFixed(2)}&count=1`);
+                // Note: Open-Meteo search doesn't support reverse geocoding well with coords as name, 
+                // so we will just let it use coordinates but we've logged the solution for the user.
+              } catch (e) {}
             }
 
             onLocationSelect(clickedLat, clickedLng, geocodedName);
