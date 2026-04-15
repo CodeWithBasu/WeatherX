@@ -25,7 +25,8 @@ export async function fetchWeatherData(
     const response = await fetch(url)
     
     if (!response.ok) {
-      throw new Error("Failed to fetch weather data from backend")
+      const errData = await response.json().catch(() => ({}))
+      throw new Error(errData.error || "Failed to fetch weather data from backend")
     }
 
     const data = await response.json()

@@ -22,7 +22,8 @@ const LOCATION_COORDS: Record<string, LocationCoordinates> = {
 }
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url)
+  try {
+    const { searchParams } = new URL(request.url)
   let location = searchParams.get("location")
   const apiKey = process.env.WEATHER_API_KEY?.trim()
   const oikolabKey = process.env.OIKOLAB_API_KEY?.trim()
@@ -132,14 +133,17 @@ export async function GET(request: Request) {
   }
 
   if (!coords) {
-    return NextResponse.json({ error: "Location not found or coordinates missing" }, { status: 400 })
+    return NextResponse.json(
+      { error: "Could not resolve location coordinates" },
+      { status: 400 }
+    )
   }
 
   // Use a unique key for caching (location name or lat,lon)
   const cacheKey = location || `${coords.lat},${coords.lon}`
   
   // Log search history in background
-  prisma.searchHistory.create({ data: { query: cacheKey } }).catch(console.error)
+  prisma.searchHistory.create({ data: { query: cacheKey } }).catch((err) => console.error("Failed to log search history:", err))
 
   // 1. Check Cache
   try {
@@ -204,7 +208,15 @@ export async function GET(request: Request) {
     console.error("Cache update failed:", err)
   }
 
-  return NextResponse.json(result)
+
+    return NextResponse.json(result)
+  } catch (error: any) {
+    console.error("CRITICAL API ERROR:", error)
+    return NextResponse.json(
+      { error: error.message || "Internal Server Error" },
+      { status: 500 }
+    )
+  }
 }
 
 async function fetchOpenWeatherMap(location: string, coords: LocationCoordinates, apiKey: string) {
