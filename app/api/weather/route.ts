@@ -71,18 +71,38 @@ export async function GET(request: Request) {
                 }
               }
             }
-          } else if (apiKey) {
-            // Fallback to OpenWeatherMap
-            const revRes = await fetch(`http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${apiKey}`);
-            if (revRes.ok) {
-              const revData = await revRes.json();
-              if (revData && revData.length > 0) {
-                humanLocation = `${revData[0].name}, ${revData[0].country}`;
+          } else {
+            // Fallback 2: Nominatim (OpenStreetMap) - No billing account required
+            // We use a respectful User-Agent to comply with their usage policy
+            const osmRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&addressdetails=1`, {
+              headers: { "User-Agent": "WeatherX-Dashboard-App" }
+            });
+            if (osmRes.ok) {
+              const osmData = await osmRes.json();
+              if (osmData.address) {
+                const city = osmData.address.city || osmData.address.town || osmData.address.village || osmData.address.suburb;
+                const state = osmData.address.state;
+                if (city) {
+                  humanLocation = state ? `${city}, ${state}` : city;
+                } else if (osmData.display_name) {
+                  humanLocation = osmData.display_name.split(',').slice(0, 2).join(', ');
+                }
+              }
+            }
+            
+            // Fallback 3: OpenWeatherMap (if API Key exists)
+            if (!humanLocation && apiKey) {
+              const revRes = await fetch(`http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${apiKey}`);
+              if (revRes.ok) {
+                const revData = await revRes.json();
+                if (revData && revData.length > 0) {
+                  humanLocation = `${revData[0].name}, ${revData[0].country}`;
+                }
               }
             }
           }
        } catch (err) {
-         console.error("Reverse geocoding failed:", err);
+         console.error("Reverse geocoding fallbacks failed:", err);
        }
     }
 
