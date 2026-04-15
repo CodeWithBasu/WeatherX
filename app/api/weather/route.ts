@@ -39,22 +39,40 @@ export async function GET(request: Request) {
     let humanLocation = location;
 
     // Resolve 'auto' timezone if provided
-    if (resolvedTimezone === "auto") {
+    if (resolvedTimezone === "auto" || resolvedTimezone === "UTC") {
       try {
         const tzRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&timezone=auto`);
         if (tzRes.ok) {
            const tzData = await tzRes.json();
-           if (tzData.timezone) resolvedTimezone = tzData.timezone;
+           if (tzData.timezone && tzData.timezone !== "UTC") resolvedTimezone = tzData.timezone;
         }
-      } catch (err) {
-        console.error("Coordinate Timezone resolution failed:", err);
-      }
+      } catch (err) {}
     }
 
     // Attempt to get a human-readable name for these coordinates (Reverse Geocoding)
-    if (!location || location.includes(',')) {
+    if (!humanLocation || humanLocation.includes(',')) {
        try {
-          if (apiKey) {
+          const googleKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+          if (googleKey) {
+            const googleRes = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lon}&key=${googleKey}`);
+            if (googleRes.ok) {
+              const googleData = await googleRes.json();
+              if (googleData.results && googleData.results.length > 0) {
+                // Find a good formatted name
+                const result = googleData.results[0];
+                const city = result.address_components.find((c: any) => c.types.includes("locality"))?.long_name;
+                const state = result.address_components.find((c: any) => c.types.includes("administrative_area_level_1"))?.long_name;
+                const country = result.address_components.find((c: any) => c.types.includes("country"))?.long_name;
+                
+                if (city) {
+                  humanLocation = state ? `${city}, ${state}` : city;
+                } else {
+                  humanLocation = result.formatted_address.split(',').slice(0, 2).join(', ');
+                }
+              }
+            }
+          } else if (apiKey) {
+            // Fallback to OpenWeatherMap
             const revRes = await fetch(`http://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${apiKey}`);
             if (revRes.ok) {
               const revData = await revRes.json();
@@ -166,8 +184,13 @@ export async function GET(request: Request) {
     })
 
     if (cached && cached.expiresAt > new Date()) {
-      console.log(`Cache hit for ${cacheKey}`)
-      return NextResponse.json(JSON.parse(cached.data))
+      const parsed = JSON.parse(cached.data);
+      // Validate cached data has new fields (location, provider)
+      if (parsed && parsed.location && parsed.provider) {
+        console.log(`Cache hit for ${cacheKey}`)
+        return NextResponse.json(parsed)
+      }
+      console.log(`Cache entry for ${cacheKey} is stale or old format, re-fetching...`)
     }
   } catch (err) {
     console.error("Cache check failed:", err)
@@ -439,23 +462,17 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     const currentFeels = currentDataRow && feelsColIdx !== -1 ? currentDataRow[feelsColIdx] : currentTemp;
     const currentClouds = currentDataRow && cloudColIdx !== -1 ? currentDataRow[cloudColIdx] : 0;
 
-    // Fetch Sunrise/Sunset from Open-Meteo as Oikolab query currently doesn't include it
+    // Fetch Sunrise/Sunset from Open-Meteo using the resolved exact timezone
     let sunrise = "--:--"
     let sunset = "--:--"
     try {
-        const astroRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=sunrise,sunset&timezone=auto&forecast_days=1`, { cache: "no-store" })
+        const astroRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=sunrise,sunset&timezone=${encodeURIComponent(coords.timezone)}&forecast_days=1`, { cache: "no-store" })
         if (astroRes.ok) {
             const astroData = await astroRes.json()
             if (astroData.daily && astroData.daily.sunrise && astroData.daily.sunrise[0]) {
-                // Open-Meteo returns "2024-04-15T05:29"
                 sunrise = astroData.daily.sunrise[0].split("T")[1];
                 sunset = astroData.daily.sunset[0].split("T")[1];
-                console.log(`Astronomical data fetched: Sunrise ${sunrise}, Sunset ${sunset}`);
-            } else {
-                console.warn("Astronomical data empty for coords:", coords);
             }
-        } else {
-            console.error("Astronomical API error:", astroRes.status);
         }
     } catch (e) {
         console.error("Failed to fetch astronomical data:", e)
