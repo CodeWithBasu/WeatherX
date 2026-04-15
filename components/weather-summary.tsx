@@ -10,8 +10,8 @@ interface WeatherSummaryProps {
 }
 
 export function WeatherSummary({ data, unit, isNight = false }: WeatherSummaryProps) {
-  const displayTemp = unit === "C" ? Math.round(((data.currentTemp - 32) * 5) / 9) : data.currentTemp
-  const displayFeelsLike = unit === "C" ? Math.round(((data.feelsLikeTemp - 32) * 5) / 9) : data.feelsLikeTemp
+  const displayTemp = unit === "F" ? Math.round((data.currentTemp * 9) / 5 + 32) : Math.round(data.currentTemp)
+  const displayFeelsLike = unit === "F" ? Math.round((data.feelsLikeTemp * 9) / 5 + 32) : Math.round(data.feelsLikeTemp)
   const comparisonText = getComparisonText(data.todayAvgTemp, data.yesterdayAvgTemp)
   const secondaryText = getSecondaryText(data)
   const conditionText = getConditionText(data.currentCondition)

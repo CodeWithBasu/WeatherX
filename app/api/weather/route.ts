@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server"
 import prisma from "@/lib/prisma"
 
+export const dynamic = "force-dynamic";
+
 interface LocationCoordinates {
   lat: number
   lon: number
@@ -280,7 +282,7 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     end.setDate(now.getDate() + 1); // tomorrow (for forecast)
 
     // Oikolab API query building
-    const params = "param=temperature&param=total_cloud_cover&param=wind_speed";
+    const params = "param=temperature&param=total_cloud_cover&param=wind_speed&param=apparent_temperature";
     const url = `https://api.oikolab.com/weather?lat=${coords.lat}&lon=${coords.lon}&${params}&start=${start.toISOString().split('T')[0]}&end=${end.toISOString().split('T')[0]}`;
     
     // Explicitly pass api-key as an HTTP header
@@ -295,9 +297,10 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     const d = JSON.parse(oiko.data);
     
     // Find column indices
-    const tempColIdx = d.columns.findIndex((c: string) => c.includes("temperature"));
+    const tempColIdx = d.columns.findIndex((c: string) => c.includes("temperature") && !c.includes("apparent"));
     const cloudColIdx = d.columns.findIndex((c: string) => c.includes("total_cloud_cover"));
     const windColIdx = d.columns.findIndex((c: string) => c.includes("wind_speed"));
+    const feelsColIdx = d.columns.findIndex((c: string) => c.includes("apparent_temperature"));
 
     // Function to get the closest hour data
     const getAtHour = (targetDate: Date, targetHour: number) => {
@@ -370,17 +373,40 @@ async function fetchOikolab(location: string, coords: LocationCoordinates, apiKe
     const currentDate = new Date();
     const currentDataRow = getAtHour(currentDate, currentDate.getHours());
     const currentTemp = currentDataRow && tempColIdx !== -1 ? currentDataRow[tempColIdx] : 0;
+    const currentFeels = currentDataRow && feelsColIdx !== -1 ? currentDataRow[feelsColIdx] : currentTemp;
     const currentClouds = currentDataRow && cloudColIdx !== -1 ? currentDataRow[cloudColIdx] : 0;
+
+    // Fetch Sunrise/Sunset from Open-Meteo as Oikolab query currently doesn't include it
+    let sunrise = "--:--"
+    let sunset = "--:--"
+    try {
+        const astroRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&daily=sunrise,sunset&timezone=auto&forecast_days=1`, { cache: "no-store" })
+        if (astroRes.ok) {
+            const astroData = await astroRes.json()
+            if (astroData.daily && astroData.daily.sunrise && astroData.daily.sunrise[0]) {
+                // Open-Meteo returns "2024-04-15T05:29"
+                sunrise = astroData.daily.sunrise[0].split("T")[1];
+                sunset = astroData.daily.sunset[0].split("T")[1];
+                console.log(`Astronomical data fetched: Sunrise ${sunrise}, Sunset ${sunset}`);
+            } else {
+                console.warn("Astronomical data empty for coords:", coords);
+            }
+        } else {
+            console.error("Astronomical API error:", astroRes.status);
+        }
+    } catch (e) {
+        console.error("Failed to fetch astronomical data:", e)
+    }
 
     return {
         provider: "Oikolab",
         locationInfo: coords,
         data: {
             currentTemp: currentTemp,
-            feelsLikeTemp: currentTemp, // Apparent temp omitted for simplicity/compatibility
+            feelsLikeTemp: currentFeels,
             currentCondition: mapCondition(currentClouds),
-            sunrise: "--:--", 
-            sunset: "--:--",
+            sunrise: sunrise, 
+            sunset: sunset,
             todayAvgTemp: todayAvg,
             yesterdayAvgTemp: yesterdayAvg,
             periods,

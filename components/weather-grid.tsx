@@ -21,7 +21,7 @@ function getComparisonTooltip(indicator: string): string {
 export function WeatherGrid({ periods, unit }: WeatherGridProps) {
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
 
-  const convertTemp = (temp: number) => (unit === "C" ? Math.round(((temp - 32) * 5) / 9) : temp)
+  const convertTemp = (temp: number) => (unit === "F" ? Math.round((temp * 9) / 5 + 32) : Math.round(temp))
 
   const handleMobileTap = (periodTime: string) => {
     setActiveTooltip(activeTooltip === periodTime ? null : periodTime)
